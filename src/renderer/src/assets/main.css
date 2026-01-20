@@ -1,0 +1,468 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --on-primary: #ffffff;
+
+  --bg-app: #f8fafc;
+  --bg-panel: #ffffff;
+  --text-main: #1e293b;
+  --text-sub: #64748b;
+  --border: #e2e8f0;
+
+  /* Tailwind 使用的别名 */
+  --bg: var(--bg-app);
+  --surface: var(--bg-panel);
+  --txt: var(--text-main);
+  --sub: var(--text-sub);
+
+  --backdrop: 0px;
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+/* ================== 深色模式 ================== */
+html.dark {
+  --primary: #818cf8;
+  --primary-hover: #6366f1;
+  --bg-app: #0f172a;
+  --bg-panel: #1e293b;
+  --text-main: #f1f5f9;
+  --text-sub: #94a3b8;
+  --border: #334155;
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5);
+
+  /* Tailwind 别名 */
+  --bg: var(--bg-app);
+  --surface: var(--bg-panel);
+  --txt: var(--text-main);
+  --sub: var(--text-sub);
+}
+
+/* ================== 毛玻璃 (Glass) ================== */
+html[data-theme='glass'] {
+  --bg-app: transparent; /* 由 Vue style 里的图片控制 */
+  --bg-panel: rgba(255, 255, 255, 0.0); /* 全透明 */
+  --backdrop: 24px;
+  --border: rgba(255, 255, 255, 0.3);
+  --text-main: #0f172a;
+  --text-sub: #64748b;
+  --shadow-md: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+
+  /* Tailwind 别名 */
+  --bg: var(--bg-app);
+  --surface: var(--bg-panel);
+  --txt: var(--text-main);
+  --sub: var(--text-sub);
+}
+
+html.dark[data-theme='glass'] {
+  --bg-panel: rgba(15, 23, 42, 0.0); /* 全透明 */
+  --border: rgba(255, 255, 255, 0.1);
+  --text-main: #f8fafc;
+  --text-sub: #94a3b8;
+  --shadow-md: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+
+  /* Tailwind 别名 */
+  --bg: var(--bg-app);
+  --surface: var(--bg-panel);
+  --txt: var(--text-main);
+  --sub: var(--text-sub);
+}
+
+/* ================== 新拟物 (Neu) ================== */
+/* 预设1: 经典白灰 */
+html[data-theme='neu'][data-neu-tone='gray'] {
+  --bg-app: #e0e5ec; --bg-panel: #e0e5ec;
+  --neu-shadow-light: rgba(255, 255, 255, 0.9);
+  --neu-shadow-dark: rgba(163, 177, 198, 0.5);
+}
+/* 预设2: 科技蓝白 */
+html[data-theme='neu'][data-neu-tone='blue'] {
+  --bg-app: #e4ebf5; --bg-panel: #e4ebf5;
+  --neu-shadow-light: rgba(255, 255, 255, 0.95);
+  --neu-shadow-dark: rgba(159, 179, 205, 0.6);
+}
+/* 预设3: 护眼绿白 */
+html[data-theme='neu'][data-neu-tone='green'] {
+  --bg-app: #e6eee6; --bg-panel: #e6eee6;
+  --neu-shadow-light: rgba(255, 255, 255, 0.9);
+  --neu-shadow-dark: rgba(184, 212, 184, 0.5);
+}
+
+html[data-theme='neu'] {
+  --border: transparent;
+  --text-main: #475569;
+  --text-sub: #64748b;
+  /* 优化的阴影效果 */
+  --shadow-neu: 8px 8px 16px var(--neu-shadow-dark), -8px -8px 16px var(--neu-shadow-light);
+  --shadow-neu-in: inset 5px 5px 10px var(--neu-shadow-dark), inset -5px -5px 10px var(--neu-shadow-light);
+
+  /* Tailwind 别名 */
+  --bg: var(--bg-app);
+  --surface: var(--bg-panel);
+  --txt: var(--text-main);
+  --sub: var(--text-sub);
+}
+
+/* 深色新拟物 - 固定为黑色风格 */
+html.dark[data-theme='neu'] {
+  --bg-app: #1a1a1a; --bg-panel: #1a1a1a;
+  --text-main: #e2e8f0;
+  --text-sub: #94a3b8;
+  --neu-shadow-light: #2a2a2a;
+  --neu-shadow-dark: #0a0a0a;
+  /* 深色模式下的阴影 */
+  --shadow-neu: 6px 6px 12px var(--neu-shadow-dark), -6px -6px 12px var(--neu-shadow-light);
+  --shadow-neu-in: inset 4px 4px 8px var(--neu-shadow-dark), inset -4px -4px 8px var(--neu-shadow-light);
+
+  /* Tailwind 别名 */
+  --bg: var(--bg-app);
+  --surface: var(--bg-panel);
+  --txt: var(--text-main);
+  --sub: var(--text-sub);
+}
+
+/* ================== 组件与特效 ================== */
+body {
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  transition: background-color 0.4s ease, color 0.3s ease;
+}
+
+.card-style {
+  background-color: var(--bg-panel);
+  backdrop-filter: blur(var(--backdrop));
+  -webkit-backdrop-filter: blur(var(--backdrop));
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  color: var(--text-main);
+  transition: none;
+}
+
+/* 新拟物卡片特供 */
+html[data-theme='neu'] .card-style {
+  box-shadow: var(--shadow-neu);
+  border: none;
+}
+
+/* 毛玻璃主题下的卡片 - 不设置背景色，让 glass-modal 等专用类控制 */
+html[data-theme='glass'] .card-style {
+  background-color: transparent !important;
+}
+
+/* 毛玻璃主题下设置窗口容器背景 - 覆盖card-style的透明设置 */
+html[data-theme='glass'] .glass-modal {
+  background-color: rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2) !important;
+}
+
+html.dark[data-theme='glass'] .glass-modal {
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(50px) !important;
+  -webkit-backdrop-filter: blur(50px) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+}
+html[data-theme='neu'] .neu-active {
+  box-shadow: var(--shadow-neu-in);
+  color: var(--text-main); /* 新拟物激活不改变文字颜色 */
+  font-weight: bold;
+}
+
+/* 新拟物主题下的二级菜单 */
+html[data-theme='neu'] .card-menu {
+  border: none;
+  box-shadow: none;
+  padding: 4px;
+}
+
+/* 浅色模式下的二级菜单背景 */
+html[data-theme='neu'][data-neu-tone='gray'] .card-menu {
+  background-color: #e0e5ec;
+}
+
+html[data-theme='neu'][data-neu-tone='blue'] .card-menu {
+  background-color: #e4ebf5;
+}
+
+html[data-theme='neu'][data-neu-tone='green'] .card-menu {
+  background-color: #e6eee6;
+}
+
+/* 浅色模式下二级菜单项 */
+html[data-theme='neu'] .card-menu button {
+  color: var(--text-main);
+  border-radius: 6px;
+  background-color: transparent !important;
+}
+
+html[data-theme='neu'] .card-menu button:hover {
+  background-color: transparent !important;
+  color: var(--text-main) !important;
+}
+
+/* 深色模式下的二级菜单 */
+html.dark[data-theme='neu'] .card-menu {
+  background-color: #1a1a1a;
+}
+
+/* 深色模式下二级菜单项 */
+html.dark[data-theme='neu'] .card-menu button {
+  color: #e5e5e5;
+  background-color: transparent !important;
+}
+
+html.dark[data-theme='neu'] .card-menu button:hover {
+  background-color: transparent !important;
+  color: #e5e5e5 !important;
+}
+
+/* 毛玻璃主题下的二级菜单 - 去掉边框 */
+html[data-theme='glass'] .card-menu,
+html.dark[data-theme='glass'] .card-menu {
+  border: none !important;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+}
+
+html.dark[data-theme='glass'] .card-menu {
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+}
+
+/* 毛玻璃主题下二级菜单项 - 禁用悬停效果 */
+html[data-theme='glass'] .card-menu button {
+  background-color: transparent !important;
+}
+
+html[data-theme='glass'] .card-menu button:hover {
+  background-color: transparent !important;
+  color: var(--text-main) !important;
+}
+
+html.dark[data-theme='glass'] .card-menu button {
+  background-color: transparent !important;
+}
+
+html.dark[data-theme='glass'] .card-menu button:hover {
+  background-color: transparent !important;
+  color: var(--text-main) !important;
+}
+
+/* 现代简约主题下二级菜单项 - 禁用悬停效果 */
+html[data-theme='modern'] .card-menu button {
+  background-color: transparent !important;
+}
+
+html[data-theme='modern'] .card-menu button:hover {
+  background-color: transparent !important;
+  color: var(--text-main) !important;
+}
+
+html.dark[data-theme='modern'] .card-menu button {
+  background-color: transparent !important;
+}
+
+html.dark[data-theme='modern'] .card-menu button:hover {
+  background-color: transparent !important;
+  color: var(--text-main) !important;
+}
+
+/* 侧边栏动态样式 */
+.sidebar-modern {
+  border-right: 1px solid var(--border);
+  background-color: var(--bg-panel);
+}
+html.dark .sidebar-modern {
+  background-color: #0f172a; /* 深色简约模式使用黑色背景 */
+}
+.sidebar-glass {
+  background-color: transparent; /* 全透 */
+  border-right: 1px solid var(--border);
+}
+.sidebar-neu {
+  background-color: var(--bg-panel); /* 实色 */
+  border: none;
+  /* 右侧稍微有点阴影分割 */
+  box-shadow: 2px 0 5px -2px var(--neu-shadow-dark); 
+  z-index: 10;
+}
+
+/* 按钮交互 */
+.btn-ghost {
+  color: var(--text-sub);
+  background: transparent;
+  transition: all 0.2s;
+}
+.btn-ghost:hover {
+  background-color: rgba(0,0,0,0.05);
+  color: var(--primary); /* 只有非新拟物模式下才变色，JS控制 */
+}
+/* 新拟物模式下的 Hover */
+html[data-theme='neu'] .btn-ghost:hover {
+  color: var(--text-main);
+  box-shadow: var(--shadow-neu);
+  background-color: var(--bg-panel);
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: var(--on-primary);
+}
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+/* ================== 滚动条样式 ================== */
+/* 隐藏原生滚动条 */
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* 自定义滚动条容器 */
+.custom-scrollbar {
+  position: relative;
+  overflow: hidden !important;
+}
+
+.custom-scrollbar-content {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: 100%;
+  padding-right: 20px;
+}
+
+/* 自定义滚动条轨道 */
+.custom-scrollbar-track {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  background: transparent;
+  z-index: 10;
+}
+
+/* 自定义滚动条滑块 */
+.custom-scrollbar-thumb {
+  position: absolute;
+  right: 0;
+  width: 8px;
+  background-color: var(--text-sub);
+  border-radius: 4px;
+  opacity: 0.3;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.custom-scrollbar-thumb:hover {
+  opacity: 0.5;
+}
+
+/* 毛玻璃主题滚动条 */
+html[data-theme='glass'] .custom-scrollbar-track {
+  width: 6px;
+}
+
+html[data-theme='glass'] .custom-scrollbar-thumb {
+  width: 6px;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+html[data-theme='glass'] .custom-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+html.dark[data-theme='glass'] .custom-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+html.dark[data-theme='glass'] .custom-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+/* 新拟物主题滚动条 */
+html[data-theme='neu'] .custom-scrollbar-track {
+  width: 10px;
+}
+
+html[data-theme='neu'] .custom-scrollbar-thumb {
+  width: 10px;
+  background-color: var(--bg-panel);
+  border-radius: 10px;
+  box-shadow: 3px 3px 6px var(--neu-shadow-dark), -3px -3px 6px var(--neu-shadow-light);
+  border: none;
+}
+
+html[data-theme='neu'] .custom-scrollbar-thumb:hover {
+  box-shadow: 4px 4px 8px var(--neu-shadow-dark), -4px -4px 8px var(--neu-shadow-light);
+}
+
+html.dark[data-theme='neu'] .custom-scrollbar-thumb {
+  background-color: var(--bg-panel);
+}
+
+/* 简约主题滚动条 */
+html[data-theme='modern'] .custom-scrollbar-thumb {
+  background-color: var(--text-sub);
+  border-radius: 4px;
+  opacity: 0.4;
+}
+
+html[data-theme='modern'] .custom-scrollbar-thumb:hover {
+  background-color: var(--text-main);
+  opacity: 0.6;
+}
+
+html.dark[data-theme='modern'] .custom-scrollbar-thumb {
+  background-color: var(--text-sub);
+  opacity: 0.5;
+}
+
+html.dark[data-theme='modern'] .custom-scrollbar-thumb:hover {
+  background-color: var(--text-main);
+  opacity: 0.7;
+}
+
+/* 毛玻璃主题下设置窗口容器背景 */
+html[data-theme='glass'] .glass-modal {
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(50px);
+  -webkit-backdrop-filter: blur(50px);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+}
+
+html.dark[data-theme='glass'] .glass-modal {
+  background-color: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(50px);
+  -webkit-backdrop-filter: blur(50px);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* 毛玻璃主题下设置窗口内部区域 - 全部透明 */
+html[data-theme='glass'] .settings-header,
+html.dark[data-theme='glass'] .settings-header {
+  background-color: transparent !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html.dark[data-theme='glass'] .settings-header {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}

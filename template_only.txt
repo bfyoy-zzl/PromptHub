@@ -1,0 +1,525 @@
+﻿
+  <div class="h-screen w-screen flex flex-col overflow-hidden text-sm relative">
+    <!-- 鑳屾櫙灞?-->
+    <div 
+      v-if="config.theme === 'glass'" 
+      class="absolute inset-0 -z-10 bg-cover bg-center transition-all duration-500"
+      :style="appBgStyle"
+    ></div>
+    <div v-if="config.theme === 'glass' && config.isDark" class="absolute inset-0 bg-black/50 pointer-events-none z-0"></div>
+
+    <header class="drag-region relative z-40 flex h-14 shrink-0 items-center justify-between px-5">
+      <div v-if="config.theme === 'modern'" class="absolute inset-0 bg-bg/90 backdrop-blur border-b border-[var(--border)] -z-10"></div>
+      <div v-if="config.theme === 'glass'" class="absolute inset-0 bg-white/10 backdrop-blur-md border-b border-[var(--border)] -z-10"></div>
+      <div class="flex items-center gap-2 text-lg font-bold tracking-wide opacity-90 text-txt">
+        <img src="@renderer/assets/PromptHub.png" class="w-6 h-6" alt="PromptHub" /> <span class="text-primary">PromptHub</span>
+      </div>
+      <div class="no-drag flex items-center gap-3">
+        <button @click="showSettings = true" class="btn-ghost flex h-8 w-8 items-center justify-center rounded-lg border border-transparent hover:border-gray-200/30 dark:hover:border-gray-600/30" :style="{ color: config.fontColor }">鈿欙笍</button>
+        <div class="mx-2 h-4 w-px bg-gray-400/30 dark:bg-white/20"></div>
+        <button @click="win?.minimize()" class="btn-ghost flex h-8 w-8 items-center justify-center rounded-lg border border-transparent hover:border-gray-200/30 dark:hover:border-gray-600/30" :style="{ color: config.fontColor }">鈹€</button>
+        <button @click="toggleMaximize" class="btn-ghost flex h-8 w-8 items-center justify-center rounded-lg border border-transparent hover:border-gray-200/30 dark:hover:border-gray-600/30" :style="{ color: config.fontColor }">
+          <span>{{ isMaximized ? '鉂? : '鈻? }}</span>
+        </button>
+        <button @click="win?.close()" class="btn-ghost flex h-8 w-8 items-center justify-center rounded-lg border border-transparent hover:bg-red-500 hover:text-white hover:border-red-500/30" :style="{ color: config.fontColor }">鉁?/button>
+      </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden z-10">
+      <aside class="flex w-60 shrink-0 flex-col gap-2 p-4 transition-colors duration-300" :class="sidebarClass">
+        <div class="mb-2 px-3 text-xs font-bold uppercase tracking-wider opacity-40 text-sub">Collections</div>
+        <button
+          v-for="cat in config.categories.filter(c => c.id !== 'trash' || activeCategory === 'trash')" :key="cat.id"
+          class="rounded-lg px-4 py-2.5 text-left font-medium transition-all"
+          :class="activeCategory === cat.id ? (config.theme === 'neu' ? 'neu-active' : 'bg-primary text-white shadow-lg font-bold') + (config.theme === 'glass' ? ' backdrop-blur-md bg-primary/80' : '') : 'btn-ghost'"
+          :style="activeCategory !== cat.id ? { color: config.fontColor } : {}"
+          @click="activeCategory = cat.id"
+        >
+          {{ cat.name }}
+        </button>
+      </aside>
+
+      <main class="flex-1">
+        <CustomScrollbar height="100%">
+          <div class="p-6 pt-10">
+            <div class="sticky top-4 z-30 mb-6 flex justify-center">
+              <div class="relative w-full max-w-xl">
+                <input v-model="searchQuery" type="text" placeholder="Search Prompts..." class="card-style w-full rounded-xl px-5 py-3 pr-12 outline-none transition-all focus:ring-2 focus:ring-primary/50 placeholder-gray-400" :style="{ color: config.fontColor }" />
+                <button @click="openAddModal" class="absolute right-2 top-1.5 bottom-1.5 aspect-square rounded-lg bg-primary text-white hover:opacity-90 transition flex items-center justify-center shadow-sm text-lg" :class="config.theme === 'glass' ? 'backdrop-blur-md bg-primary/80' : ''">+</button>
+              </div>
+            </div>
+
+            <div v-if="filteredList.length > 0" class="columns-2 gap-4 space-y-4 pb-20 md:columns-3 lg:columns-4 xl:columns-5">
+              <div
+                v-for="item in filteredList"
+                :key="item.id"
+                class="card-style group break-inside-avoid rounded-xl p-3 transition-all duration-300 ease-out hover:-translate-y-2 hover:shadow-xl relative"
+              >
+            <div class="absolute top-4 right-4 z-20 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div class="relative">
+                <button @click.stop="activeMenuId = activeMenuId === item.id ? null : item.id" class="w-6 h-6 rounded-lg shadow flex items-center justify-center transition-all" :class="config.isDark ? 'bg-black/40 text-white hover:bg-black/50' : 'bg-white/40 text-black hover:bg-white/50'" title="鏇村">鈰?/button>
+                <div v-if="activeMenuId === item.id" class="absolute right-0 top-8 rounded-lg shadow-lg border py-1 min-w-[80px] z-[100]" :class="config.theme === 'neu' ? 'neu-modal' : (config.theme === 'glass' ? 'glass-modal' : (config.isDark ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-white border-gray-200 text-gray-800'))" @click.stop>
+                  <button @click.stop="copyCard(item)" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                    澶嶅埗
+                  </button>
+                  <button @click.stop="openEditModal(item)" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                    缂栬緫
+                  </button>
+                  <button @click.stop="handleDelete(item)" class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-red-500 transition">
+                    鍒犻櫎
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="absolute top-4 left-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+               <button @click.stop="viewOriginal((item.image || null) as string | null)" class="w-6 h-6 rounded-lg shadow flex items-center justify-center transition-all" :class="config.isDark ? 'bg-black/40 text-white hover:bg-black/50' : 'bg-white/40 text-black hover:bg-white/50'" title="鏌ョ湅鍘熷浘">馃憗锔?/button>
+            </div>
+
+            <div v-if="item.thumbnail || item.image" class="relative overflow-hidden rounded-lg bg-gray-200 dark:bg-gray-700 aspect-auto mb-3 cursor-pointer" @dblclick="viewOriginal(item.image)">
+              <img
+                v-if="item.thumbnail || item.image"
+                :src="item.thumbnail || item.image"
+                class="w-full object-cover"
+                loading="lazy"
+                @error="(e) => { const target = e.target as HTMLImageElement; target.style.display = 'none'; const next = target.nextElementSibling as HTMLElement; if (next) next.style.display = 'flex'; }"
+              />
+              <div class="absolute inset-0 hidden items-center justify-center text-gray-400 text-xs">
+                <span>鍥剧墖鍔犺浇澶辫触</span>
+              </div>
+            </div>
+            <div>
+              <div class="mb-1">
+                <h3 class="truncate text-sm font-bold text-txt opacity-90">{{ item.title }}</h3>
+              </div>
+              <div
+                class="p-2 rounded text-[10px] font-mono break-all transition relative group/prompt border"
+                :class="copiedPromptId === item.id
+                  ? 'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-600 text-green-800 dark:text-green-200'
+                  : 'bg-gray-50/10 dark:bg-gray-800/10 border-gray-200/10 dark:border-gray-700/10 text-sub hover:bg-gray-100/20 dark:hover:bg-gray-700/20'"
+                @dblclick="item.prompt && copyPrompt(item.prompt, item.id)"
+                title="鍙屽嚮澶嶅埗"
+              >
+                <span v-if="copiedPromptId === item.id" class="font-bold text-center block">鉁?澶嶅埗鎴愬姛</span>
+                <span v-else>{{ item.prompt }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="mt-20 flex flex-col items-center justify-center text-sub opacity-50">
+          <div class="text-6xl mb-4">馃搨</div>
+          <p>娌℃湁鎵惧埌鐩稿叧鎻愮ず璇?/p>
+          <p class="text-xs mt-2">鐐瑰嚮涓婃柟 + 鍙锋坊鍔?/p>
+        </div>
+        </div>
+      </CustomScrollbar>
+    </main>
+    </div>
+
+    <!-- 缂栬緫鍣ㄥ脊绐?-->
+    <div v-if="showEditor" class="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in p-8">
+      <div class="card-style w-full max-w-2xl flex flex-col overflow-hidden rounded-2xl shadow-2xl" :class="config.theme === 'glass' ? 'glass-modal' : ''" style="max-height: 90vh">
+        <div class="flex items-center justify-between border-b border-gray-200/50 p-4 dark:border-gray-700/50" :class="config.theme === 'glass' ? '!border-white/20' : ''">
+          <h2 class="text-lg font-bold text-txt" :class="config.theme === 'glass' && !config.isDark ? '!text-gray-800' : ''">{{ isEditMode ? '缂栬緫鎻愮ず璇? : '娣诲姞鎻愮ず璇? }}</h2>
+          <button @click="showEditor = false" class="btn-ghost rounded-full w-8 h-8 flex items-center justify-center">鉁?/button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 space-y-4" :class="config.theme === 'glass' ? '!text-gray-800 dark:!text-gray-100' : ''">
+            <div class="grid grid-cols-3 gap-4">
+            <div class="col-span-2">
+              <label class="block text-xs font-bold mb-1 text-sub">鏍囬</label>
+              <input v-model="form.title" type="text" class="card-style w-full px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-primary !shadow-inner bg-gray-50 dark:bg-gray-900" placeholder="缁欐彁绀鸿瘝璧蜂釜鍚嶅瓧..." />
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1 text-sub">鍒嗙被</label>
+              <div class="relative">
+                <select
+                  v-model="form.categoryId"
+                  class="card-style w-full px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-primary/50 appearance-none cursor-pointer backdrop-blur-sm"
+                  :class="{
+                    'bg-white/70 border-gray-200/50 text-gray-800': !config.isDark,
+                    'bg-black/70 border-gray-600/50 text-gray-200': config.isDark
+                  }"
+                >
+                  <option
+                    v-for="cat in config.categories.filter(c => c.id !== 'trash')"
+                    :key="cat.id"
+                    :value="cat.id"
+                    :class="{
+                      'bg-white/80 text-gray-800': !config.isDark,
+                      'bg-black/70 text-gray-200': config.isDark
+                    }"
+                  >{{ cat.name }}</option>
+                </select>
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" :class="{ 'text-gray-500': !config.isDark, 'text-gray-400': config.isDark }">鈻?/div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold mb-1 text-sub">鎻忚堪 (鍙€?</label>
+            <textarea v-model="form.description" rows="2" class="card-style w-full px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-primary !shadow-inner bg-gray-50 dark:bg-gray-900 resize-none" placeholder="澶囨敞淇℃伅..."></textarea>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold mb-1 text-sub">Prompt 鎻愮ず璇?/label>
+            <textarea v-model="form.prompt" rows="4" class="card-style w-full px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-primary !shadow-inner bg-gray-50 dark:bg-gray-900 font-mono text-xs" placeholder="鍦ㄦ杈撳叆 Prompt..."></textarea>
+          </div>
+
+          <div>
+             <label class="block text-xs font-bold mb-1 text-sub">鍙傝€冨浘</label>
+             <div 
+               class="relative rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 transition hover:border-primary hover:bg-primary/5 min-h-[160px] flex items-center justify-center overflow-hidden group"
+               @dragover.prevent
+               @drop.prevent="handleDrop"
+               @paste="handlePaste"
+               tabindex="0" 
+             >
+               <input ref="fileInputRef" type="file" accept="image/*" class="hidden" @change="handleFileSelect" />
+               
+               <div v-if="form.tempImage || form.image" class="absolute inset-0 flex items-center justify-center bg-transparent">
+                 <img :src="form.tempImage || form.image" class="max-w-full max-h-full object-contain" />
+                 <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-4">
+                    <button @click="removeImage" class="bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-red-600">绉婚櫎鍥剧墖</button>
+                    <button @click="fileInputRef?.click()" class="bg-white text-black px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-gray-100">鏇存崲</button>
+                 </div>
+               </div>
+
+               <div v-else class="text-center p-8 cursor-pointer" @click.stop="fileInputRef?.click()">
+                 <div class="text-4xl mb-2 opacity-30">馃柤锔?/div>
+                 <p class="text-xs font-bold text-sub">鐐瑰嚮涓婁紶銆佹嫋鍏ュ浘鐗?鎴?Ctrl+V 绮樿创</p>
+               </div>
+             </div>
+          </div>
+        </div>
+
+        <div class="border-t border-gray-200/50 p-4 flex justify-end gap-3 dark:border-gray-700/50">
+          <button @click="showEditor = false" class="px-5 py-2 rounded-lg font-bold text-xs btn-ghost border border-gray-200 dark:border-gray-700">鍙栨秷</button>
+          <button @click="handleSave" class="px-6 py-2 rounded-lg font-bold text-xs btn-primary shadow-lg">淇濆瓨</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 璁剧疆寮圭獥 -->
+    <div v-if="showSettings" class="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md animate-in fade-in p-10" @click.self="showSettings = false">
+       <div class="card-style w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden rounded-2xl shadow-2xl" :class="{ 'neu-modal': config.theme === 'neu', 'glass-modal': config.theme === 'glass' }">
+        <div class="settings-header flex items-center justify-between border-b border-gray-200/50 p-4 dark:border-gray-700/50 backdrop-blur-sm" :class="{ 'border-white/20': config.theme === 'glass', '!text-gray-800': config.theme === 'glass' && !config.isDark }">
+          <h2 class="text-lg font-bold text-txt" :class="config.theme === 'glass' && !config.isDark ? '!text-gray-800' : ''">鈿欙笍 璁剧疆</h2>
+          <button @click="showSettings = false" class="btn-ghost rounded-full w-8 h-8 flex items-center justify-center">鉁?/button>
+        </div>
+        <div class="flex overflow-hidden h-full">
+        <div class="w-48 shrink-0 border-r border-gray-200/50 dark:border-gray-700/50 p-4 flex flex-col gap-2 h-full" :class="{ '!border-none !bg-transparent': config.theme === 'neu', '!border-white/20 !bg-transparent': config.theme === 'glass', '!bg-transparent': config.theme === 'modern' }">
+          <button @click="settingsTab = 'theme'" :class="[settingsTab === 'theme' ? (config.theme === 'neu' ? 'neu-active' : 'bg-primary text-white shadow-md') : 'btn-ghost', 'text-left px-4 py-2.5 rounded-lg font-medium transition', { '!text-gray-700 hover:!text-gray-900': config.theme === 'glass' && !config.isDark, '!text-white hover:!text-gray-200': config.isDark && config.theme === 'modern' }]">馃帹 涓婚椋庢牸</button>
+          <button @click="settingsTab = 'category'" :class="[settingsTab === 'category' ? (config.theme === 'neu' ? 'neu-active' : 'bg-primary text-white shadow-md') : 'btn-ghost', 'text-left px-4 py-2.5 rounded-lg font-medium transition', { '!text-gray-700 hover:!text-gray-900': config.theme === 'glass' && !config.isDark, '!text-white hover:!text-gray-200': config.isDark && config.theme === 'modern' }]">馃彿锔?鍒嗙被绠＄悊</button>
+          <button @click="settingsTab = 'data'" :class="[settingsTab === 'data' ? (config.theme === 'neu' ? 'neu-active' : 'bg-primary text-white shadow-md') : 'btn-ghost', 'text-left px-4 py-2.5 rounded-lg font-medium transition', { '!text-gray-700 hover:!text-gray-900': config.theme === 'glass' && !config.isDark, '!text-white hover:!text-gray-200': config.isDark && config.theme === 'modern' }]">馃捑 鏁版嵁绠＄悊</button>
+          <button @click="settingsTab = 'trash'" :class="[settingsTab === 'trash' ? (config.theme === 'neu' ? 'neu-active' : 'bg-primary text-white shadow-md') : 'btn-ghost', 'text-left px-4 py-2.5 rounded-lg font-medium transition', { '!text-gray-700 hover:!text-gray-900': config.theme === 'glass' && !config.isDark, '!text-white hover:!text-gray-200': config.isDark && config.theme === 'modern' }]">馃棏锔?鍥炴敹绔?/button>
+          <button @click="settingsTab = 'about'" :class="[settingsTab === 'about' ? (config.theme === 'neu' ? 'neu-active' : 'bg-primary text-white shadow-md') : 'btn-ghost', 'text-left px-4 py-2.5 rounded-lg font-medium transition', { '!text-gray-700 hover:!text-gray-900': config.theme === 'glass' && !config.isDark, '!text-white hover:!text-gray-200': config.isDark && config.theme === 'modern' }]">鈩癸笍 鍏充簬</button>
+        </div>
+        <div class="flex-1 p-8 relative overflow-y-auto h-full" :class="{ '!bg-transparent': config.theme === 'neu', '!bg-transparent !text-gray-800 dark:!text-gray-100': config.theme === 'glass' }">
+           <div v-if="settingsTab === 'theme'" class="space-y-8 animate-in slide-in">
+             <h2 class="text-xl font-bold mb-6 text-txt">鐣岄潰澶栬</h2>
+             <div class="grid grid-cols-4 gap-4">
+                <button v-for="t in ['modern', 'glass', 'neu']" :key="t" @click="config.theme = t" class="relative h-24 rounded-xl border-2 transition-all overflow-hidden group" :class="config.theme === t ? 'border-primary ring-2 ring-primary/30' : 'border-transparent opacity-70 hover:opacity-100'">
+                  <div class="absolute inset-0" :class="{ 'bg-gray-100': t==='modern', 'bg-gradient-to-br from-blue-300 to-purple-300': t==='glass', 'bg-[#e0e5ec]': t==='neu' }"></div>
+                  <span class="absolute bottom-2 left-3 font-bold text-black/70">{{ {modern:'绠€绾?, glass:'姣涚幓鐠?, neu:'鏂版嫙鐗?}[t] }}</span>
+                </button>
+                <button @click="config.isDark = !config.isDark" class="relative h-24 rounded-xl border-2 border-transparent transition-all hover:scale-105" :class="config.isDark ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-800'">
+                   <div class="absolute inset-0 flex items-center justify-center text-3xl">{{ config.isDark ? '馃寵' : '馃尀' }}</div>
+                </button>
+             </div>
+             <div v-if="config.theme !== 'neu'" class="mt-6">
+                <label class="block text-xs font-bold mb-3 text-sub uppercase">涓婚鑹?/label>
+                <div class="flex items-center gap-3">
+                  <button v-for="c in presetColors" :key="c" @click="config.primaryColor = c" class="w-8 h-8 rounded-full border-2 transition hover:scale-110" :style="{backgroundColor: c, borderColor: config.primaryColor === c ? 'white' : 'transparent'}"></button>
+                  <input type="color" v-model="config.primaryColor" class="h-8 w-12 cursor-pointer rounded bg-transparent ml-2">
+                </div>
+             </div>
+             <div v-if="config.theme !== 'neu'" class="mt-6">
+                <label class="block text-xs font-bold mb-3 text-sub uppercase">瀛椾綋棰滆壊</label>
+                <div class="flex items-center gap-3">
+                  <button v-for="c in presetFontColors" :key="c" @click="config.fontColor = c" class="w-8 h-8 rounded-full border-2 transition hover:scale-110" :style="{backgroundColor: c, borderColor: config.fontColor === c ? 'white' : 'transparent'}"></button>
+                  <input type="color" v-model="config.fontColor" class="h-8 w-12 cursor-pointer rounded bg-transparent ml-2">
+                </div>
+             </div>
+             <div v-if="config.theme === 'glass'" class="mt-6">
+                <label class="block text-xs font-bold mb-3 text-sub uppercase">鑳屾櫙璁剧疆</label>
+                <div class="space-y-4">
+                  <!-- 鑳屾櫙绫诲瀷閫夋嫨 -->
+                  <div class="flex gap-2">
+                    <button @click="config.glassBg.type = 'gradient'" :class="config.glassBg.type === 'gradient' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-800'" class="px-4 py-2 rounded-lg text-xs font-bold transition">棰勮娓愬彉</button>
+                    <button @click="config.glassBg.type = 'custom'" :class="config.glassBg.type === 'custom' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-800'" class="px-4 py-2 rounded-lg text-xs font-bold transition">鑷畾涔夋笎鍙?/button>
+                    <button @click="config.glassBg.type = 'image'" :class="config.glassBg.type === 'image' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-800'" class="px-4 py-2 rounded-lg text-xs font-bold transition">鑳屾櫙鍥剧墖</button>
+                  </div>
+                  
+                  <!-- 棰勮娓愬彉閫夋嫨 -->
+                  <div v-if="config.glassBg.type === 'gradient'" class="grid grid-cols-5 gap-2">
+                    <button v-for="(grad, idx) in gradients" :key="idx" @click="config.glassBg.value = idx" class="h-16 rounded-lg border-2 transition hover:scale-105" :class="config.glassBg.value === idx ? 'border-primary ring-2 ring-primary/30' : 'border-transparent'" :style="{background: grad}"></button>
+                  </div>
+                  
+                  <!-- 鑷畾涔夋笎鍙?-->
+                  <div v-if="config.glassBg.type === 'custom'">
+                    <div class="flex items-center gap-4">
+                      <div class="flex flex-col items-center gap-1">
+                        <label class="text-xs font-bold text-sub">棰滆壊 1</label>
+                        <input 
+                          type="color" 
+                          v-model="config.glassBg.color1" 
+                          class="w-8 h-8 cursor-pointer rounded-lg border-2 border-transparent transition hover:scale-110"
+                          :style="{ borderColor: config.glassBg.color1 === config.primaryColor ? 'white' : 'transparent' }"
+                        />
+                      </div>
+                      <div class="flex flex-col items-center gap-1">
+                        <label class="text-xs font-bold text-sub">浣嶇疆 1</label>
+                        <input 
+                          v-model.number="config.glassBg.position1" 
+                          type="number" 
+                          min="0" 
+                          max="100"
+                          class="w-16 px-2 py-1 rounded-lg outline-none focus:ring-2 focus:ring-primary/50 text-xs text-center bg-transparent border border-gray-200/50 dark:border-gray-700/50 [&::-webkit-inner-spin-button]:bg-transparent [&::-webkit-outer-spin-button]:bg-transparent"
+                        />
+                      </div>
+                      <div class="flex flex-col items-center gap-1">
+                        <label class="text-xs font-bold text-sub">棰滆壊 2</label>
+                        <input 
+                          type="color" 
+                          v-model="config.glassBg.color2" 
+                          class="w-8 h-8 cursor-pointer rounded-lg border-2 border-transparent transition hover:scale-110"
+                          :style="{ borderColor: config.glassBg.color2 === config.primaryColor ? 'white' : 'transparent' }"
+                        />
+                      </div>
+                      <div class="flex flex-col items-center gap-1">
+                        <label class="text-xs font-bold text-sub">浣嶇疆 2</label>
+                        <input 
+                          v-model.number="config.glassBg.position2" 
+                          type="number" 
+                          min="0" 
+                          max="100"
+                          class="w-16 px-2 py-1 rounded-lg outline-none focus:ring-2 focus:ring-primary/50 text-xs text-center bg-transparent border border-gray-200/50 dark:border-gray-700/50 [&::-webkit-inner-spin-button]:bg-transparent [&::-webkit-outer-spin-button]:bg-transparent"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- 鑳屾櫙鍥剧墖 -->
+                  <div v-if="config.glassBg.type === 'image'">
+                    <div class="flex gap-2 items-center">
+                      <div
+                        v-if="config.glassBg.image"
+                        class="w-[6rem] h-[6rem] rounded-xl overflow-hidden border border-gray-200/50 dark:border-gray-700/50 flex-shrink-0"
+                      >
+                        <img :src="config.glassBg.image" class="w-full h-full object-cover" alt="鑳屾櫙鍥剧墖" />
+                      </div>
+                      <button @click="selectBgImage" class="btn-primary px-4 py-2 rounded-lg text-xs font-bold shadow-md">閫夋嫨鍥剧墖</button>
+                    </div>
+                    <div class="mt-3">
+                      <label class="block text-xs font-bold mb-2 text-sub">鑳屾櫙妯＄硦: {{ Math.round(config.glassBg.blur / 20 * 100) }}%</label>
+                      <input 
+                        v-model.number="config.glassBg.blur" 
+                        type="range" 
+                        min="0" 
+                        max="20" 
+                        step="1"
+                        class="w-1/2 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                      />
+                    </div>
+                  </div>
+                </div>
+             </div>
+             <div v-if="config.theme === 'neu'" class="mt-6">
+                <label class="block text-xs font-bold mb-3 text-sub uppercase">鍩鸿皟椋庢牸</label>
+                <div class="flex gap-4">
+                  <button v-for="tone in [{id: 'gray', name: '鐏?}, {id: 'blue', name: '钃?}, {id: 'green', name: '缁?}]" :key="tone.id" @click="config.neuTone = tone.id" class="w-12 h-12 rounded-full text-xs font-bold transition shadow-sm flex items-center justify-center" :class="config.neuTone === tone.id ? 'ring-2 ring-primary ring-offset-2' : ''" :style="{ backgroundColor: tone.id === 'gray' ? '#e0e5ec' : tone.id === 'blue' ? '#e4ebf5' : tone.id === 'green' ? '#e6eee6' : '#e0e5ec', color: '#475569' }">{{ tone.name }}</button>
+                </div>
+             </div>
+           </div>
+           <div v-if="settingsTab === 'category'" class="space-y-6 animate-in slide-in">
+             <h2 class="text-xl font-bold text-txt">鍒嗙被绠＄悊</h2>
+             <div class="card-style p-6 rounded-xl opacity-80">
+               <div class="flex gap-2 mb-6">
+                 <input v-model="newCategoryName" type="text" placeholder="杈撳叆鏂板垎绫诲悕绉?.." class="flex-1 card-style px-4 py-2 rounded-lg outline-none focus:ring-2 focus:ring-primary/50" :style="{ color: config.fontColor }">
+                 <button @click="addCategory" class="btn-primary px-4 py-2 rounded-lg font-bold shadow-md">娣诲姞</button>
+               </div>
+               <CustomScrollbar>
+                 <div
+                   v-for="(cat, idx) in config.categories"
+                   :key="cat.id"
+                   class="flex items-center justify-between h-10 px-4 rounded-lg backdrop-blur-sm border cursor-move hover:shadow-md transition-all duration-200"
+                   :class="{
+                     'mb-[5px]': idx < config.categories.length - 1,
+                     'bg-white/70 border-gray-200/50 hover:bg-white/80': !config.isDark,
+                     'bg-black/50 border-gray-700/50 hover:bg-black/60': config.isDark
+                   }"
+                   draggable="true"
+                   @dragstart="handleDragStart(idx)"
+                   @dragover.prevent
+                   @drop="handleCategoryDrop(idx)"
+                 >
+                   <div class="flex items-center gap-3 flex-1">
+                     <span class="cursor-grab active:cursor-grabbing text-base" :class="{ 'text-gray-600': !config.isDark, 'text-gray-300': config.isDark }">鈰嫯</span>
+                     <input
+                       v-if="cat.id !== 'all' && editingCategory === idx"
+                       v-model="editingCategoryName"
+                       @blur="saveCategoryRename(idx)"
+                       @keyup.enter="saveCategoryRename(idx)"
+                       :ref="(el: any) => { if (el && categoryInputRefs.value) { categoryInputRefs.value[idx] = el } }"
+                       class="flex-1 px-3 py-1.5 rounded-lg outline-none focus:ring-2 focus:ring-primary/50 text-sm h-8 backdrop-blur-sm"
+                       :class="{
+                         'bg-white/80 border border-gray-200/50 text-gray-800': !config.isDark,
+                         'bg-black/60 border border-gray-600/50 text-gray-200': config.isDark
+                       }"
+                     />
+                     <span 
+                       v-else 
+                       class="font-medium text-sm cursor-pointer" 
+                       :class="{ 'text-gray-800': !config.isDark, 'text-gray-200': config.isDark }"
+                       @dblclick="startEditCategory(idx, cat.name)"
+                     >{{ cat.name }}</span>
+                   </div>
+                   <div class="flex items-center gap-2">
+                     <button
+                       v-if="cat.id !== 'all'"
+                       @click="startEditCategory(idx, cat.name)"
+                       class="p-1.5 rounded-lg text-sm transition hover:bg-black/10 dark:hover:bg-white/10"
+                       :class="{ 'text-gray-600 hover:text-gray-800': !config.isDark, 'text-gray-400 hover:text-gray-200': config.isDark }"
+                       title="閲嶅懡鍚?
+                     >鉁?/button>
+                     <button
+                       v-if="cat.id !== 'all'"
+                       @click="removeCategory(idx)"
+                       class="p-1.5 rounded-lg text-sm transition hover:bg-red-100 dark:hover:bg-red-900/50"
+                       :class="{ 'text-red-500 hover:text-red-700': !config.isDark, 'text-red-400 hover:text-red-300': config.isDark }"
+                       title="鍒犻櫎"
+                     >鉁?/button>
+                   </div>
+                 </div>
+               </CustomScrollbar>
+             </div>
+           </div>
+           <div v-if="settingsTab === 'data'" class="space-y-6 animate-in slide-in">
+             <h2 class="text-xl font-bold text-txt">鏁版嵁绠＄悊</h2>
+             <div class="card-style p-6 rounded-xl space-y-4 opacity-80">
+                <div class="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-200 p-4 rounded-lg text-xs leading-5 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50 transition" @click="win.openFile(config.dataPath)">馃搧 鏁版嵁淇濆瓨浣嶇疆锛歿{ config.dataPath }}</div>
+                <div class="flex gap-3">
+                  <button @click="win.selectDataPath().then(path => { if (path) config.dataPath = path })" class="btn-primary px-4 py-2 rounded-lg text-xs font-bold shadow-md">鏇存崲浣嶇疆</button>
+                  <button @click="win.migrateData(config.dataPath)" class="btn-ghost px-4 py-2 rounded-lg text-xs border border-gray-200 dark:border-gray-700">鏁版嵁杩佺Щ</button>
+                </div>
+             </div>
+           </div>
+           <div v-if="settingsTab === 'trash'" class="space-y-6 animate-in slide-in">
+             <div class="flex items-center justify-between mb-6">
+               <h2 class="text-xl font-bold text-txt">鍥炴敹绔?/h2>
+               <div class="flex gap-2">
+                 <button @click="showRestoreAllConfirm = true" class="btn-primary px-4 py-2 rounded-lg text-xs font-bold shadow-md" :disabled="trashItems.length === 0">鍏ㄩ儴杩樺師</button>
+                 <button @click="showClearAllConfirm = true" class="bg-red-500 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg hover:bg-red-600 transition" :disabled="trashItems.length === 0">鍏ㄩ儴娓呴櫎</button>
+               </div>
+             </div>
+             <div class="card-style p-6 rounded-xl opacity-80">
+               <div v-if="trashItems.length > 0" class="grid grid-cols-4 gap-4">
+                 <div 
+                   v-for="item in trashItems" 
+                   :key="item.id" 
+                   class="card-style group break-inside-avoid rounded-xl p-3 transition-all duration-300 ease-out hover:-translate-y-2 hover:shadow-xl relative"
+                 >
+                   <div v-if="item.thumbnail || item.image" class="relative overflow-hidden rounded-lg bg-gray-200 dark:bg-gray-700 aspect-auto mb-3 cursor-pointer" @dblclick="viewOriginal(item.image)">
+                     <img
+                       v-if="item.thumbnail || item.image"
+                       :src="item.thumbnail || item.image"
+                       class="w-full object-cover"
+                       loading="lazy"
+                       @error="(e) => { const target = e.target as HTMLImageElement; const next = target.nextElementSibling as HTMLElement; if (next) next.style.display = 'flex'; target.style.display = 'none'; }"
+                     />
+                     <div class="absolute inset-0 hidden items-center justify-center text-gray-400 text-xs">
+                       <span>鍥剧墖鍔犺浇澶辫触</span>
+                     </div>
+                     <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                       <button @click.stop="restoreItem(item)" class="w-10 h-10 rounded-full bg-green-500 text-white shadow-lg flex items-center justify-center hover:bg-green-600 hover:scale-110 transition" title="杩樺師">
+                         <span class="text-lg">鈫?/span>
+                       </button>
+                       <button @click.stop="handleDelete(item)" class="w-10 h-10 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center hover:bg-red-600 hover:scale-110 transition" title="鍒犻櫎">
+                         <span class="text-lg">鉁?/span>
+                       </button>
+                     </div>
+                   </div>
+                   <div>
+                     <h3 class="truncate text-sm font-bold text-txt opacity-90">{{ item.title }}</h3>
+                   </div>
+                 </div>
+               </div>
+               <div v-else class="text-center py-12 text-sub opacity-50">
+                 <div class="text-4xl mb-4">馃棏锔?/div>
+                 <p>鍥炴敹绔欎负绌?/p>
+               </div>
+             </div>
+           </div>
+           <div v-if="settingsTab === 'about'" class="flex flex-col items-center justify-center h-full animate-in slide-in">
+             <div class="text-center space-y-6">
+               <div class="animate-pulse">
+                 <img src="@renderer/assets/PromptHub.png" class="w-24 h-24 mx-auto" alt="PromptHub" />
+               </div>
+               <h1 class="text-3xl font-bold text-txt tracking-wide">PromptHub</h1>
+               <div class="flex items-center gap-2 text-sub">
+                 <span class="w-8 h-px bg-gray-300 dark:bg-gray-600"></span>
+                 <span class="text-sm font-medium">v1.0.1</span>
+                 <span class="w-8 h-px bg-gray-300 dark:bg-gray-600"></span>
+               </div>
+               <div class="space-y-3 text-sub pt-4">
+                 <p class="flex items-center justify-center gap-2">
+                   <span class="text-lg">馃懁</span>
+                   <span class="text-txt">浣滆€? 浼yoy</span>
+                 </p>
+                 <p class="flex items-center justify-center gap-2">
+                   <span class="text-lg">馃摟</span>
+                   <span class="text-txt">bfyoy@qq.com</span>
+                 </p>
+               </div>
+             </div>
+           </div>
+        </div>
+      </div>
+    </div>
+
+  <!-- 鍏ㄩ儴杩樺師纭绐楀彛 -->
+  <div v-if="showRestoreAllConfirm" class="absolute inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in p-8" @click.self="cancelRestoreAll">
+    <div class="card-style w-full max-w-md flex flex-col overflow-hidden rounded-2xl shadow-2xl" :class="{ 'glass-modal': config.theme === 'glass', 'neu-modal': config.theme === 'neu' }">
+      <div class="p-6 text-center">
+        <h3 class="text-lg font-bold text-txt mb-2">鍏ㄩ儴杩樺師</h3>
+        <p class="text-xs text-sub mb-6">姝ゆ搷浣滄棤娉曟挙閿€</p>
+        <p class="text-sm text-txt mb-6">纭畾瑕佽繕鍘熸墍鏈夊洖鏀剁珯鐨勬暟鎹悧锛?/p>
+        <div class="flex gap-3 justify-center">
+          <button @click="cancelRestoreAll" class="px-5 py-2 rounded-lg font-bold text-xs btn-ghost border border-gray-200 dark:border-gray-700">鍙栨秷</button>
+          <button @click="confirmRestoreAll" class="px-5 py-2 rounded-lg font-bold text-xs bg-primary text-white shadow-lg hover:bg-primary/90 transition">纭杩樺師</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 鍏ㄩ儴娓呴櫎纭绐楀彛 -->
+  <div v-if="showClearAllConfirm" class="absolute inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in p-8" @click.self="cancelClearAll">
+    <div class="card-style w-full max-w-md flex flex-col overflow-hidden rounded-2xl shadow-2xl" :class="{ 'glass-modal': config.theme === 'glass', 'neu-modal': config.theme === 'neu' }">
+      <div class="p-6 text-center">
+        <h3 class="text-lg font-bold text-txt mb-2">鍏ㄩ儴娓呴櫎</h3>
+        <p class="text-xs text-sub mb-6">姝ゆ搷浣滄棤娉曟挙閿€</p>
+        <p class="text-sm text-txt mb-6">纭畾瑕佹竻闄ゆ墍鏈夊洖鏀剁珯鐨勬暟鎹悧锛?/p>
+        <div class="flex gap-3 justify-center">
+          <button @click="cancelClearAll" class="px-5 py-2 rounded-lg font-bold text-xs btn-ghost border border-gray-200 dark:border-gray-700">鍙栨秷</button>
+          <button @click="confirmClearAll" class="px-5 py-2 rounded-lg font-bold text-xs bg-red-500 text-white shadow-lg hover:bg-red-600 transition">纭娓呴櫎</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 鍒犻櫎纭绐楀彛 - 绉诲埌鏈€澶栧眰瀹瑰櫒涔嬪 -->
+  <div v-if="showDeleteConfirm" class="absolute inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in p-8" @click.self="cancelDelete">
+    <div class="card-style w-full max-w-md flex flex-col overflow-hidden rounded-2xl shadow-2xl" :class="{ 'glass-modal': config.theme === 'glass', 'neu-modal': config.theme === 'neu' }">
+      <div class="p-6 text-center">
+        <h3 class="text-lg font-bold text-txt mb-2">{{ itemToDelete?.categoryId === 'trash' ? '褰诲簳鍒犻櫎' : '鍒犻櫎鑷冲洖鏀剁珯' }}</h3>
+        <p class="text-xs text-sub mb-6">{{ itemToDelete?.categoryId === 'trash' ? '姝ゆ搷浣滄棤娉曟挙閿€' : '姝ゆ搷浣滄棤娉曟挙閿€' }}</p>
+        <p class="text-sm text-txt mb-6">纭畾瑕佸垹闄ゆ鏁版嵁鍚楋紵</p>
+        <div class="flex gap-3 justify-center">
+          <button @click="cancelDelete" class="px-5 py-2 rounded-lg font-bold text-xs btn-ghost border border-gray-200 dark:border-gray-700">鍙栨秷</button>
+          <button @click="confirmDelete" class="px-5 py-2 rounded-lg font-bold text-xs bg-red-500 text-white shadow-lg hover:bg-red-600 transition">纭鍒犻櫎</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
